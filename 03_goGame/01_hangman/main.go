@@ -1,13 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
+	"strings"
 	"time"
 	"unicode"
 )
 
+var inputReader = bufio.NewReader(os.Stdin)
 var dictionary = []string{
 	"Zombie",
 	"Gopher",
@@ -26,8 +30,34 @@ func main() {
 	// targetWord = "United States of America"
 	fmt.Println(targetWord)
 	guessedLetters['s'] = true
-	hangmanState := 1
+	hangmanState := 0
+	for !isGameOver(targetWord, guessedLetters, hangmanState) {
+		printGameState(targetWord, guessedLetters, hangmanState)
+		input := readInput()
+		if len(input) != 1 {
+			fmt.Println("Invalid input. Please use letters only...")
+			continue
+		}
+
+		letter := rune(input[0])
+
+		if isCorrectGuess(targetWord, letter) {
+			guessedLetters[letter] = true
+		} else {
+			hangmanState++
+		}
+	}
+
 	printGameState(targetWord, guessedLetters, hangmanState)
+	fmt.Println("Game Over... ")
+
+	if isWordGuessed(targetWord, guessedLetters) {
+		fmt.Println("You win!")
+	} else if isHangmanComplete(hangmanState) {
+		fmt.Println("You lose!")
+	} else {
+		panic("invalid state. Game is over and there is no winner!")
+	}
 	// Printing game state
 	//  * Print word you're guessing
 	//  * Print hangman state
@@ -52,6 +82,23 @@ func initializeGuessdWords(targetWord string) map[rune]bool {
 
 func getRandomWord() string {
 	return dictionary[rand.Intn(len(dictionary))]
+}
+
+func isGameOver(
+	targetWord string,
+	guessedLetters map[rune]bool,
+	hangmanState int,
+) bool {
+	return isWordGuessed(targetWord, guessedLetters) || isHangmanComplete(hangmanState)
+}
+
+func isWordGuessed(targetWord string, guessedLetters map[rune]bool) bool {
+	for _, ch := range targetWord {
+		if !guessedLetters[unicode.ToLower(ch)] {
+			return false
+		}
+	}
+	return true
 }
 
 func printGameState(
@@ -91,4 +138,22 @@ func printHangmanDrawing(hangmanState int) string {
 	}
 
 	return string(data)
+}
+
+func readInput() string {
+	fmt.Print("> ")
+	input, err := inputReader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+
+	return strings.TrimSpace(input)
+}
+
+func isCorrectGuess(targetWord string, letter rune) bool {
+	return strings.ContainsRune(targetWord, letter)
+}
+
+func isHangmanComplete(hangmanState int) bool {
+	return hangmanState >= 9
 }
